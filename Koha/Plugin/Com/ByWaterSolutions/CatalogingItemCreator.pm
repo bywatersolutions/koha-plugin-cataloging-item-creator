@@ -1,4 +1,4 @@
-package Koha::Plugin::Com::ByWaterSolutions::KitchenSink;
+package Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator;
 
 ## It's good practice to use Modern::Perl
 use Modern::Perl;
