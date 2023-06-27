@@ -11,7 +11,6 @@
 
 <div id="doc3">
     <!-- We can access our own plugins resource files using the PLUGIN_PATH variable. -->
-    <img src="[% PLUGIN_PATH %]/logo.png" />
     <h3>Koha: Kitchen Sink Plugin: Configuration</h3>
 
     <!-- Notice our form here has no 'action', this is good, it means that our forms will always get passed back to 'plugins/run.pl'. You could hard code it instead if you prefer -->
@@ -20,47 +19,23 @@
         <input type="hidden" name="class" value="[% CLASS %]"/>
         <input type="hidden" name="method" value="[% METHOD %]"/>
 
-        <label for="foo">Parameter 'foo': </label>
-        <select name="foo">
-            [% IF foo == 'A' %]
-                <option value="A" selected="selected">Option A</option>
-            [% ELSE %]
-                <option value="A">Option A</option>
-            [% END %]
-
-            [% IF foo == 'B' %]
-                <option value="B" selected="selected">Option B</option>
-            [% ELSE %]
-                <option value="B">Option B</option>
-            [% END %]
-        </select>
 
         <p>
-
-        <label for="bar">Parameter 'bar': </label>
-        <input type="text" name="bar" value="[% bar %]" />
-
-        <p>
-
-        <label for="enable_opac_payments">Enable OPAC Account Payments: </label>
-        <select name="enable_opac_payments">
-            [% IF enable_opac_payments == 'No' %]
-                <option value="No" selected="selected">No</option>
-            [% ELSE %]
-                <option value="No">No</option>
-            [% END %]
-
-            [% IF enable_opac_payments == 'Yes' %]
-                <option value="Yes" selected="selected">Yes</option>
-            [% ELSE %]
-                <option value="Yes">Yes</option>
-            [% END %]
-        </select>
+        <label for="default_itype">Default itemtype code: </label>
+        <input type="text" name="default_itype" value="[% default_itype %]" />
 
         <p>
+        <label for="default_homebranch">Parameter 'default_homebranch': </label>
+        <input type="text" name="default_homebranch" value="[% default_homebranch %]" />
+
+
+        <p>
+        <label for="default_holdingbranch">Parameter 'default_holdingbranch': </label>
+        <input type="text" name="default_holdingbranch" value="[% default_holdingbranch %]" />
 
         <input type="hidden" name="save" value="1" />
 
+        <p>
         <input type="submit" value="Save configuration" />
     </form>
 
