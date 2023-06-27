@@ -1,8 +1,8 @@
 {
-  "name": "koha-plugin-kitchen-sink",
+  "name": "koha-plugin-cataloging-item-creator",
   "version": "2.1.30",
   "previous_version": "2.1.29",
-  "description": "Koha Kitchen Sink Plugin",
+  "description": "Koha Cataloging Item Creator",
   "devDependencies": {
     "gulp": "^3.9.1",
     "gulp-cli": "^1.2.2",
@@ -14,14 +14,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/bywatersolutions/koha-plugin-kitchen-sink.git"
+    "url": "git+https://github.com/bywatersolutions/koha-plugin-cataloging-item-creator.git"
   },
   "author": "Kyle M Hall <kyle@bywatersolutions.com>",
   "license": "GPL-3.0",
   "bugs": {
-    "url": "https://github.com/bywatersolutions/koha-plugin-kitchen-sink/issues"
+    "url": "https://github.com/bywatersolutions/koha-plugin-cataloging-item-creator/issues"
   },
-  "homepage": "https://github.com/bywatersolutions/koha-plugin-kitchen-sink#readme",
+  "homepage": "https://github.com/bywatersolutions/koha-plugin-cataloging-item-creator#readme",
   "dependencies": {
     "datetime": "0.0.3",
     "jsonfile": "^4.0.0",
