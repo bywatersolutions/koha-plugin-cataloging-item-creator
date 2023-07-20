@@ -25,12 +25,12 @@
         <input type="text" name="default_itype" value="[% default_itype %]" />
 
         <p>
-        <label for="default_homebranch">Parameter 'default_homebranch': </label>
+        <label for="default_homebranch">Default home branch code: </label>
         <input type="text" name="default_homebranch" value="[% default_homebranch %]" />
 
 
         <p>
-        <label for="default_holdingbranch">Parameter 'default_holdingbranch': </label>
+        <label for="default_holdingbranch">Default holding branch code: </label>
         <input type="text" name="default_holdingbranch" value="[% default_holdingbranch %]" />
 
         <input type="hidden" name="save" value="1" />
