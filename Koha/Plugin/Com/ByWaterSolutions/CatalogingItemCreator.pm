@@ -61,6 +61,9 @@ sub after_biblio_action {
     my $action = $params->{action};
     my $biblio = $params->{biblio};
 
+    #return if $action ne 'create';
+    return if $biblio->items->count;
+
     if ($0 =~ m/addorder.pl/gi) {
         my $default_homebranch    = $self->retrieve_data('default_homebranch');
         my $default_holdingbranch = $self->retrieve_data('default_holdingbranch');
