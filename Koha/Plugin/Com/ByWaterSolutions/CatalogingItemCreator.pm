@@ -74,6 +74,7 @@ sub after_biblio_action {
             holdingbranch => $default_holdingbranch,
             itype         => $default_itype,
             biblionumber  => $biblio->id,
+            notforloan    => "-1",
         })->store;
     }
 }
