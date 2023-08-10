@@ -69,6 +69,12 @@ sub after_biblio_action {
         my $default_holdingbranch = $self->retrieve_data('default_holdingbranch');
         my $default_itype         = $self->retrieve_data('default_itype');
 
+        if ($default_itype =~ m/^\d\d\d\$\w$/) {
+            my $record = $biblio->metadata->record;
+            my ($field, $subfield) = split(/\$/, $default_itype);
+            $default_itype = $record->subfield($field, $subfield);
+        }
+
         my $item = Koha::Item->new({
             homebranch    => $default_homebranch,
             holdingbranch => $default_holdingbranch,
