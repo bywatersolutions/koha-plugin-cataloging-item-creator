@@ -23,6 +23,7 @@
         <p>
         <label for="default_itype">Default itemtype code: </label>
         <input type="text" name="default_itype" value="[% default_itype %]" />
+        <p class="hint">You can also put a MARC tag here ( e.g. 960$a )</p>
 
         <p>
         <label for="default_homebranch">Default home branch code: </label>
