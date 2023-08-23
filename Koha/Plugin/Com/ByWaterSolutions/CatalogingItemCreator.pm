@@ -61,59 +61,28 @@ sub after_biblio_action {
     my $action = $params->{action};
     my $biblio = $params->{biblio};
 
-    return unless ($0 =~ m/marc_ordering_process.pl|addorder.pl|addorderiso2709.pl/gi);
-
     #return if $action ne 'create';
     return if $biblio->items->count;
 
-    my $default_homebranch    = $self->retrieve_data('default_homebranch');
-    my $default_holdingbranch = $self->retrieve_data('default_holdingbranch');
-    my $default_itype         = $self->retrieve_data('default_itype');
+    if ($0 =~ m/marc_ordering_process.pl|addorder.pl/gi) {
+        my $default_homebranch    = $self->retrieve_data('default_homebranch');
+        my $default_holdingbranch = $self->retrieve_data('default_holdingbranch');
+        my $default_itype         = $self->retrieve_data('default_itype');
 
-    if ($default_itype =~ m/^\d\d\d\$\w$/) {
-        my $record = $biblio->metadata->record;
-        my ($field, $subfield) = split(/\$/, $default_itype);
-        $default_itype = $record->subfield($field, $subfield);
+        if ($default_itype =~ m/^\d\d\d\$\w$/) {
+            my $record = $biblio->metadata->record;
+            my ($field, $subfield) = split(/\$/, $default_itype);
+            $default_itype = $record->subfield($field, $subfield);
+        }
+
+        my $item = Koha::Item->new({
+            homebranch    => $default_homebranch,
+            holdingbranch => $default_holdingbranch,
+            itype         => $default_itype,
+            biblionumber  => $biblio->id,
+            notforloan    => "-1",
+        })->store;
     }
-
-    my $item = Koha::Item->new({
-        homebranch    => $default_homebranch,
-        holdingbranch => $default_holdingbranch,
-        itype         => $default_itype,
-        biblionumber  => $biblio->id,
-        notforloan    => "-1",
-    })->store;
-
-    # Assume we want the newest order related to this bib
-    my $order = $biblio->active_orders->search({}, {order_by => {-desc => 'ordernumber'}})->single;
-    return unless $order;
-
-    my $record = $biblio->record;
-
-    # Add the first 960$x to the orderline as the vendor note, they should all be the same
-    my $new_order_vendornote = $record->subfield('960', 'x');
-    my $old_order_vendornote = $order->order_vendornote || q{};
-    $new_order_vendornote .= "\n" if ($new_order_vendornote || $old_order_vendornote);
-    $order->order_vendornote($old_order_vendornote . $new_order_vendornote);
-
-    # Build the tracking report fields into an internal note for the orderline
-    my @f960s = $record->field('960');
-    my @f961s = $record->field('961');
-
-    my @order_internalnote;
-    for (my $i = 0; $i < scalar @f960s; $i++) {
-        my $branch     = $f961s[$i]->subfield('b');
-        my $collection = $f960s[$i]->subfield('8');
-        my $location   = $f960s[$i]->subfield('c');
-        my $quantity   = $f960s[$i]->subfield('q');
-        push(@order_internalnote, "$branch / $collection / $location / $quantity");
-    }
-    my $old_order_internalnote = $$order->order_internalnote || q{};
-    unshift(@order_internalnote, $old_order_internalnote) if $old_order_internalnote;
-    my $order_internalnote = join("\n", @order_internalnote);
-    $order->order_vendornote($order_internalnote);
-
-    $order->store();
 }
 
 sub configure {
