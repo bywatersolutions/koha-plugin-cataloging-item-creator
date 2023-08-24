@@ -64,7 +64,7 @@ sub after_biblio_action {
     #return if $action ne 'create';
     return if $biblio->items->count;
 
-    if ($0 =~ m/marc_ordering_process.pl|addorder.pl/gi) {
+    if ($0 =~ m/marc_ordering_process.pl|addorderiso2709.pl/gi) {
         my $default_homebranch    = $self->retrieve_data('default_homebranch');
         my $default_holdingbranch = $self->retrieve_data('default_holdingbranch');
         my $default_itype         = $self->retrieve_data('default_itype');
