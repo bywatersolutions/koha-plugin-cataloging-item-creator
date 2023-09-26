@@ -61,8 +61,15 @@ sub after_biblio_action {
     my $action = $params->{action};
     my $biblio = $params->{biblio};
 
+    warn "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Checking Biblio " . $biblio->id;
+
     #return if $action ne 'create';
-    return if $biblio->items->count;
+
+    if ($biblio->items->count) {
+        warn
+            "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Biblio ${\( $biblio->id )} has items, not creating additional item";
+        return;
+    }
 
     if ($0 =~ m/marc_ordering_process.pl|addorderiso2709.pl/gi) {
         my $default_homebranch    = $self->retrieve_data('default_homebranch');
@@ -82,6 +89,10 @@ sub after_biblio_action {
             biblionumber  => $biblio->id,
             notforloan    => "-1",
         })->store;
+    }
+    else {
+        warn
+            "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Called from $0 for Biblio ${\( $biblio->id )}, not creating item.";
     }
 }
 
