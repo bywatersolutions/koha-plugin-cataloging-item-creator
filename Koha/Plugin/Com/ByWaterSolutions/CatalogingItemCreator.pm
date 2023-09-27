@@ -83,6 +83,8 @@ sub after_biblio_action {
                 my $record = $biblio->metadata->record;
                 my ($field, $subfield) = split(/\$/, $default_itype);
                 $default_itype = $record->subfield($field, $subfield);
+            warn
+                "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Got itype of $default_itype for $field $subfield for Biblio ${\( $biblio->id )}: ";
             }
 
             my $data = {
