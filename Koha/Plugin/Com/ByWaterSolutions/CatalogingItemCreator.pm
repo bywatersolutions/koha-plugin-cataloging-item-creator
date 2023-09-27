@@ -24,6 +24,8 @@ use LWP::UserAgent;
 use MARC::Record;
 use Mojo::JSON qw(decode_json);
 use URI::Escape qw(uri_unescape);
+use Try::Tiny;
+use Carp qw(longmess);
 
 ## Here we set our plugin version
 our $VERSION         = "{VERSION}";
@@ -61,39 +63,55 @@ sub after_biblio_action {
     my $action = $params->{action};
     my $biblio = $params->{biblio};
 
-    warn "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Checking Biblio " . $biblio->id;
+    try {
+        warn "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Checking Biblio " . $biblio->id;
 
-    #return if $action ne 'create';
+        #return if $action ne 'create';
 
-    if ($biblio->items->count) {
-        warn
-            "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Biblio ${\( $biblio->id )} has items, not creating additional item";
-        return;
-    }
-
-    if ($0 =~ m/marc_ordering_process.pl|addorderiso2709.pl/gi) {
-        my $default_homebranch    = $self->retrieve_data('default_homebranch');
-        my $default_holdingbranch = $self->retrieve_data('default_holdingbranch');
-        my $default_itype         = $self->retrieve_data('default_itype');
-
-        if ($default_itype =~ m/^\d\d\d\$\w$/) {
-            my $record = $biblio->metadata->record;
-            my ($field, $subfield) = split(/\$/, $default_itype);
-            $default_itype = $record->subfield($field, $subfield);
+        if ($biblio->items->count) {
+            warn
+                "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Biblio ${\( $biblio->id )} has items, not creating additional item";
+            return;
         }
 
-        my $item = Koha::Item->new({
-            homebranch    => $default_homebranch,
-            holdingbranch => $default_holdingbranch,
-            itype         => $default_itype,
-            biblionumber  => $biblio->id,
-            notforloan    => "-1",
-        })->store;
+        if ($0 =~ m/marc_ordering_process.pl|addorderiso2709.pl/gi) {
+            my $default_homebranch    = $self->retrieve_data('default_homebranch');
+            my $default_holdingbranch = $self->retrieve_data('default_holdingbranch');
+            my $default_itype         = $self->retrieve_data('default_itype');
+
+            if ($default_itype =~ m/^\d\d\d\$\w$/) {
+                my $record = $biblio->metadata->record;
+                my ($field, $subfield) = split(/\$/, $default_itype);
+                $default_itype = $record->subfield($field, $subfield);
+            }
+
+            my $data = {
+                homebranch    => $default_homebranch,
+                holdingbranch => $default_holdingbranch,
+                itype         => $default_itype,
+                biblionumber  => $biblio->id,
+                notforloan    => "-1",
+            };
+
+            warn
+                "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Adding item for Biblio ${\( $biblio->id )}: " . Data::Dumper::Dumper( $data );
+
+
+            my $item = Koha::Item->new($data)->store;
+            $item->get_from_storage();
+            warn
+                "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Item created for Biblio ${\( $biblio->id )}: " . Data::Dumper::Dumper( $item->unblessed );
+
+        }
+        else {
+            warn
+                "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Called from $0 for Biblio ${\( $biblio->id )}, not creating item.";
+        }
     }
-    else {
-        warn
-            "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Called from $0 for Biblio ${\( $biblio->id )}, not creating item.";
-    }
+    catch {
+        warn "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - caught error: $_: "
+            . longmess("STACK TRACE");
+    };
 }
 
 sub configure {
