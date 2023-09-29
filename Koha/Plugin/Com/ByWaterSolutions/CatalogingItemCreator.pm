@@ -68,13 +68,30 @@ sub after_biblio_action {
 
         #return if $action ne 'create';
 
+        warn
+            "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Called from '$0' for Biblio ${\( $biblio->id )}";
+
         if ($biblio->items->count) {
             warn
                 "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Biblio ${\( $biblio->id )} has items, not creating additional item";
             return;
         }
 
-        if ($0 =~ m/marc_ordering_process.pl|addorderiso2709.pl/gi) {
+        my $caller = $0;
+        my $do_create = 0;
+        for my $allowed_caller ("marc_ordering_process.pl", "addorderiso2709.pl") {
+            if (index($caller, $allowed_caller) != -1) {
+                $do_create = 1;
+                warn
+                    "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - $caller matched on $allowed_caller for Biblio ${\( $biblio->id )}";
+            }
+            else {
+                warn
+                    "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - $caller matched on $allowed_caller for Biblio ${\( $biblio->id )}";
+            }
+        }
+
+        if ($do_create) {
             my $default_homebranch    = $self->retrieve_data('default_homebranch');
             my $default_holdingbranch = $self->retrieve_data('default_holdingbranch');
             my $default_itype         = $self->retrieve_data('default_itype');
