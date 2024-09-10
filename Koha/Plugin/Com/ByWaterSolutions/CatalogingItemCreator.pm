@@ -117,7 +117,7 @@ sub after_biblio_action {
 
 
             my $item = Koha::Item->new($data)->store;
-            $item->get_from_storage();
+            $item->discard_changes();
             warn
                 "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Item created for Biblio ${\( $biblio->id )}: " . Data::Dumper::Dumper( $item->unblessed );
 
