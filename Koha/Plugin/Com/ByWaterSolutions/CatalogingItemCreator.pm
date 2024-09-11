@@ -63,6 +63,9 @@ sub after_biblio_action {
     my $action = $params->{action};
     my $biblio = $params->{biblio};
 
+    return
+        if $action eq 'delete';
+
     try {
         warn "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Checking Biblio " . $biblio->id;
 
