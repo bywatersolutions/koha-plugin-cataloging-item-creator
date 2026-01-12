@@ -63,14 +63,15 @@ sub after_biblio_action {
     my $action = $params->{action};
     my $biblio = $params->{biblio};
 
-    return
-        if $action eq 'delete';
+    warn "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Checking Biblio " . $biblio->id;
+
+    #return if $action ne 'create';
+    if ( $action eq 'delete' ) {
+        warn "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Biblio is being deleted, skipping: " . $biblio->id;
+        return;
+    }
 
     try {
-        warn "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Checking Biblio " . $biblio->id;
-
-        #return if $action ne 'create';
-
         warn
             "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Called from '$0' for Biblio ${\( $biblio->id )}";
 
