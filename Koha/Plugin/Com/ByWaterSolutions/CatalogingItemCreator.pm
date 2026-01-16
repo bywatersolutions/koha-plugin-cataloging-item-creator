@@ -91,7 +91,7 @@ sub after_biblio_action {
             }
             else {
                 warn dt_from_string->strftime('%Y-%m-%dT%H:%M:%S') . " - " .
-                    "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - $caller matched on $allowed_caller for Biblio ${\( $biblio->id )}";
+                    "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - $caller did not match on $allowed_caller for Biblio ${\( $biblio->id )}";
             }
         }
 
