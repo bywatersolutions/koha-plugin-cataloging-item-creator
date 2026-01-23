@@ -62,14 +62,17 @@ sub after_biblio_action {
 
     my $action = $params->{action};
     my $biblio = $params->{biblio};
+    my $biblio_id = $params->{biblio_id};
 
-    warn dt_from_string->strftime('%Y-%m-%dT%H:%M:%S') . " - Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Checking Biblio " . $biblio->id;
+    warn dt_from_string->strftime('%Y-%m-%dT%H:%M:%S') . "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Action: $action";
+    warn dt_from_string->strftime('%Y-%m-%dT%H:%M:%S') . "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Biblio ID: $biblio_id ( $biblio )";
 
-    #return if $action ne 'create';
     if ( $action eq 'delete' ) {
-        warn dt_from_string->strftime('%Y-%m-%dT%H:%M:%S') . " - Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Biblio is being deleted, skipping: " . $biblio->id;
+        warn dt_from_string->strftime('%Y-%m-%dT%H:%M:%S') . " - Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Biblio is being deleted, skipping: $biblio_id";
         return;
     }
+
+    warn dt_from_string->strftime('%Y-%m-%dT%H:%M:%S') . " - Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Checking Biblio " . $biblio->id;
 
     try {
         warn dt_from_string->strftime('%Y-%m-%dT%H:%M:%S') . " - " .
