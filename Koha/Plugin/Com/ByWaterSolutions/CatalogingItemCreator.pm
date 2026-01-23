@@ -17,7 +17,6 @@ use Koha::Libraries;
 use Koha::Patron::Categories;
 use Koha::Patron;
 use Koha::Item;
-use Koha::Logger;
 
 use Cwd qw(abs_path);
 use Data::Dumper;
@@ -64,20 +63,21 @@ sub after_biblio_action {
     my $action = $params->{action};
     my $biblio = $params->{biblio};
 
-    my $logger = Koha::Logger->get({ interface => 'intranet' });
-    $logger->warn( "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Checking Biblio " . $biblio->id );
+    warn dt_from_string->strftime('%Y-%m-%dT%H:%M:%S') . " - Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Checking Biblio " . $biblio->id;
 
     #return if $action ne 'create';
     if ( $action eq 'delete' ) {
-        $logger->warn( "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Biblio is being deleted, skipping: " . $biblio->id );
+        warn dt_from_string->strftime('%Y-%m-%dT%H:%M:%S') . " - Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Biblio is being deleted, skipping: " . $biblio->id;
         return;
     }
 
     try {
-        $logger->warn( "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Called from '$0' for Biblio ${\( $biblio->id )}" );
+        warn dt_from_string->strftime('%Y-%m-%dT%H:%M:%S') . " - " .
+            "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Called from '$0' for Biblio ${\( $biblio->id )}";
 
         if ($biblio->items->count) {
-            $logger->warn( "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Biblio ${\( $biblio->id )} has items, not creating additional item" );
+            warn dt_from_string->strftime('%Y-%m-%dT%H:%M:%S') . " - " .
+                "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Biblio ${\( $biblio->id )} has items, not creating additional item";
             return;
         }
 
@@ -86,10 +86,12 @@ sub after_biblio_action {
         for my $allowed_caller ("marc_ordering_process.pl", "addorderiso2709.pl") {
             if (index($caller, $allowed_caller) != -1) {
                 $do_create = 1;
-                $logger->warn( "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - $caller matched on $allowed_caller for Biblio ${\( $biblio->id )}" );
+                warn dt_from_string->strftime('%Y-%m-%dT%H:%M:%S') . " - " .
+                    "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - $caller matched on $allowed_caller for Biblio ${\( $biblio->id )}";
             }
             else {
-                $logger->warn( "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - $caller did not match on $allowed_caller for Biblio ${\( $biblio->id )}" );
+                warn dt_from_string->strftime('%Y-%m-%dT%H:%M:%S') . " - " .
+                    "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - $caller did not match on $allowed_caller for Biblio ${\( $biblio->id )}";
             }
         }
 
@@ -102,7 +104,8 @@ sub after_biblio_action {
                 my $record = $biblio->metadata->record;
                 my ($field, $subfield) = split(/\$/, $default_itype);
                 $default_itype = $record->subfield($field, $subfield);
-                $logger->warn( "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Got itype of $default_itype for $field $subfield for Biblio ${\( $biblio->id )}: ");
+            warn dt_from_string->strftime('%Y-%m-%dT%H:%M:%S') . " - " .
+                "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Got itype of $default_itype for $field $subfield for Biblio ${\( $biblio->id )}: ";
             }
 
             my $data = {
@@ -113,20 +116,24 @@ sub after_biblio_action {
                 notforloan    => "-1",
             };
 
-            $logger->warn( "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Adding item for Biblio ${\( $biblio->id )}: " . Data::Dumper::Dumper( $data ) );
+            warn dt_from_string->strftime('%Y-%m-%dT%H:%M:%S') . " - " .
+                "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Adding item for Biblio ${\( $biblio->id )}: " . Data::Dumper::Dumper( $data );
 
 
             my $item = Koha::Item->new($data)->store;
             $item->discard_changes();
-            $logger->warn( "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Item created for Biblio ${\( $biblio->id )}: " . Data::Dumper::Dumper( $item->unblessed ) );
+            warn
+                "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Item created for Biblio ${\( $biblio->id )}: " . Data::Dumper::Dumper( $item->unblessed );
 
         }
         else {
-            $logger->warn( "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Called from $0 for Biblio ${\( $biblio->id )}, not creating item." );
+            warn dt_from_string->strftime('%Y-%m-%dT%H:%M:%S') . " - " .
+                "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Called from $0 for Biblio ${\( $biblio->id )}, not creating item.";
         }
     }
     catch {
-        $logger->warn( "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - caught error: $_: " . longmess("STACK TRACE") );
+        warn dt_from_string->strftime('%Y-%m-%dT%H:%M:%S') . " - Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - caught error: $_: "
+            . longmess("STACK TRACE");
     };
 }
 
