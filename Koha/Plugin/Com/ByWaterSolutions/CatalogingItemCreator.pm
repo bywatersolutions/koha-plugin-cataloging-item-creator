@@ -80,6 +80,7 @@ sub after_biblio_action {
 
         unless ( $biblio ) {
             warn dt_from_string->strftime('%Y-%m-%dT%H:%M:%S') . " - Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - biblio $biblio_id not found in database!"
+            return;
         }
     }
 
