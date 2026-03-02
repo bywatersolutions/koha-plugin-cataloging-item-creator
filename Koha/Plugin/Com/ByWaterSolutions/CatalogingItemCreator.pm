@@ -13,6 +13,7 @@ use C4::Context;
 use Koha::Account::Lines;
 use Koha::Account;
 use Koha::DateUtils qw(dt_from_string);
+use Koha::Biblios;
 use Koha::Libraries;
 use Koha::Patron::Categories;
 use Koha::Patron;
@@ -72,6 +73,22 @@ sub after_biblio_action {
         return;
     }
 
+    # Check to see if we should do anything
+    my $caller = $0;
+    my $do_create = 0;
+    for my $allowed_caller ("marc_ordering_process.pl", "addorderiso2709.pl") {
+        if (index($caller, $allowed_caller) != -1) {
+            $do_create = 1;
+            warn dt_from_string->strftime('%Y-%m-%dT%H:%M:%S') . " - " .
+                "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - $caller matched on $allowed_caller for Biblio $biblio_id";
+        }
+        else {
+            warn dt_from_string->strftime('%Y-%m-%dT%H:%M:%S') . " - " .
+                "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - $caller did not match on $allowed_caller for Biblio $biblio_id";
+        }
+    }
+    return unless $do_create;
+
     unless ( $biblio ) {
         warn dt_from_string->strftime('%Y-%m-%dT%H:%M:%S') . " - Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Biblio not passed in for non-delete action, fetching from database...: "
             . longmess("STACK TRACE");
@@ -84,72 +101,119 @@ sub after_biblio_action {
         }
     }
 
-    warn dt_from_string->strftime('%Y-%m-%dT%H:%M:%S') . " - Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Checking Biblio " . $biblio->id;
-
     try {
         warn dt_from_string->strftime('%Y-%m-%dT%H:%M:%S') . " - " .
             "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Called from '$0' for Biblio $biblio_id";
 
-        if ($biblio->items->count) {
-            warn dt_from_string->strftime('%Y-%m-%dT%H:%M:%S') . " - " .
-                "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Biblio $biblio_id has items, not creating additional item";
-            return;
-        }
-
-        my $caller = $0;
-        my $do_create = 0;
-        for my $allowed_caller ("marc_ordering_process.pl", "addorderiso2709.pl") {
-            if (index($caller, $allowed_caller) != -1) {
-                $do_create = 1;
-                warn dt_from_string->strftime('%Y-%m-%dT%H:%M:%S') . " - " .
-                    "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - $caller matched on $allowed_caller for Biblio $biblio_id";
+        if ($do_create) {
+            if ($biblio && $biblio->items->count == 0) {
+                $self->_create_item_for_biblio({ biblio => $biblio });
             }
             else {
-                warn dt_from_string->strftime('%Y-%m-%dT%H:%M:%S') . " - " .
-                    "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - $caller did not match on $allowed_caller for Biblio $biblio_id";
+                $self->create_items_for_today_vendor_imports();
             }
-        }
-
-        if ($do_create) {
-            my $default_homebranch    = $self->retrieve_data('default_homebranch');
-            my $default_holdingbranch = $self->retrieve_data('default_holdingbranch');
-            my $default_itype         = $self->retrieve_data('default_itype');
-
-            if ($default_itype =~ m/^\d\d\d\$\w$/) {
-                my $record = $biblio->metadata->record;
-                my ($field, $subfield) = split(/\$/, $default_itype);
-                $default_itype = $record->subfield($field, $subfield);
-                warn dt_from_string->strftime('%Y-%m-%dT%H:%M:%S') . " - " .
-                    "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Got itype of $default_itype for $field $subfield for Biblio $biblio_id: ";
-            }
-
-            my $data = {
-                homebranch    => $default_homebranch,
-                holdingbranch => $default_holdingbranch,
-                itype         => $default_itype,
-                biblionumber  => $biblio->id,
-                notforloan    => "-1",
-            };
-
-            warn dt_from_string->strftime('%Y-%m-%dT%H:%M:%S') . " - " .
-                "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Adding item for Biblio $biblio_id: " . Data::Dumper::Dumper( $data );
-
-
-            my $item = Koha::Item->new($data)->store;
-            $item->discard_changes();
-            warn
-                "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Item created for Biblio $biblio_id: " . Data::Dumper::Dumper( $item->unblessed );
-
-        }
-        else {
-            warn dt_from_string->strftime('%Y-%m-%dT%H:%M:%S') . " - " .
-                "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Called from $0 for Biblio $biblio_id, not creating item.";
         }
     }
     catch {
         warn dt_from_string->strftime('%Y-%m-%dT%H:%M:%S') . " - Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - caught error: $_: "
             . longmess("STACK TRACE");
     };
+}
+
+sub create_items_for_today_vendor_imports {
+    my ($self) = @_;
+
+    my $dbh = C4::Context->dbh;
+    my $sth = $dbh->prepare(
+        q{
+SELECT import_batches.upload_timestamp,
+       import_batches.file_name,
+       import_biblios.matched_biblionumber,
+       biblio.biblionumber
+FROM   import_batches
+       LEFT JOIN import_records USING ( import_batch_id )
+       LEFT JOIN import_biblios USING ( import_record_id )
+       LEFT JOIN biblio
+              ON ( import_biblios.matched_biblionumber = biblio.biblionumber )
+       LEFT JOIN items USING ( biblionumber )
+WHERE  ( import_batches.file_name LIKE ?
+          OR import_batches.file_name LIKE ? )
+       AND DATE(import_batches.upload_timestamp) = CURDATE()
+       AND items.itemnumber IS NULL
+}
+    );
+    $sth->execute('%ingram%', '%vendor%');
+
+    my $created = 0;
+    while ( my $r = $sth->fetchrow_hashref ) {
+        my $biblionumber = $r->{biblionumber} || $r->{matched_biblionumber};
+        unless ($biblionumber) {
+            next;
+        }
+
+        my $biblio = Koha::Biblios->find($biblionumber);
+        next unless $biblio;
+
+        my $item = $self->_create_item_for_biblio({
+            biblio                    => $biblio,
+            default_homebranch        => $self->retrieve_data('default_homebranch') || 'ADM',
+            default_holdingbranch     => $self->retrieve_data('default_holdingbranch') || 'ADM',
+            default_itype             => $self->retrieve_data('default_itype') || '960$y',
+            skip_if_items_exist       => 1,
+            log_context               => "file_name=$r->{file_name}, upload_timestamp=$r->{upload_timestamp}",
+        });
+        $created++ if $item;
+    }
+
+    warn dt_from_string->strftime('%Y-%m-%dT%H:%M:%S') . " - " .
+        "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Created $created items from today's vendor imports";
+    return $created;
+}
+
+sub _create_item_for_biblio {
+    my ($self, $params) = @_;
+
+    my $biblio = $params->{biblio};
+    return unless $biblio;
+
+    my $biblio_id = $biblio->id;
+
+    if ( $params->{skip_if_items_exist} && $biblio->items->count ) {
+        warn dt_from_string->strftime('%Y-%m-%dT%H:%M:%S') . " - " .
+            "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Biblio $biblio_id has items, skipping";
+        return;
+    }
+
+    my $default_homebranch    = $params->{default_homebranch} // $self->retrieve_data('default_homebranch');
+    my $default_holdingbranch = $params->{default_holdingbranch} // $self->retrieve_data('default_holdingbranch');
+    my $default_itype         = $params->{default_itype} // $self->retrieve_data('default_itype');
+
+    if ( defined $default_itype && $default_itype =~ m/^\d\d\d\$\w$/ ) {
+        my $record = $biblio->metadata->record;
+        my ($field, $subfield) = split(/\$/, $default_itype);
+        $default_itype = $record->subfield($field, $subfield);
+        warn dt_from_string->strftime('%Y-%m-%dT%H:%M:%S') . " - " .
+            "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Got itype of $default_itype for $field $subfield for Biblio $biblio_id";
+    }
+
+    my $data = {
+        homebranch    => $default_homebranch,
+        holdingbranch => $default_holdingbranch,
+        itype         => $default_itype,
+        biblionumber  => $biblio_id,
+        notforloan    => "-1",
+    };
+
+    my $log_context = $params->{log_context} ? " [$params->{log_context}]" : '';
+    warn dt_from_string->strftime('%Y-%m-%dT%H:%M:%S') . " - " .
+        "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Adding item for Biblio $biblio_id $log_context: " . Data::Dumper::Dumper($data);
+
+    my $item = Koha::Item->new($data)->store;
+    $item->discard_changes();
+    warn dt_from_string->strftime('%Y-%m-%dT%H:%M:%S') . " - " .
+        "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Item created for Biblio $biblio_id: " . Data::Dumper::Dumper($item->unblessed);
+
+    return $item;
 }
 
 sub configure {
