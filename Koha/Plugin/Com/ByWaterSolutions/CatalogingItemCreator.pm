@@ -76,7 +76,7 @@ sub after_biblio_action {
     # Check to see if we should do anything
     my $caller = $0;
     my $do_create = 0;
-    for my $allowed_caller ("marc_ordering_process.pl", "addorderiso2709.pl") {
+    for my $allowed_caller ("marc_ordering_process.pl", "addorderiso2709.pl", "-e") { # -e is from a one-shot cli, eg perl -MKoha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator -e 'Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator->new->after_biblio_action({ action => "create"})'
         if (index($caller, $allowed_caller) != -1) {
             $do_create = 1;
             warn dt_from_string->strftime('%Y-%m-%dT%H:%M:%S') . " - " .
@@ -89,15 +89,13 @@ sub after_biblio_action {
     }
     return unless $do_create;
 
-    unless ( $biblio ) {
-        warn dt_from_string->strftime('%Y-%m-%dT%H:%M:%S') . " - Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Biblio not passed in for non-delete action, fetching from database...: "
-            . longmess("STACK TRACE");
+    if ( $biblio_id && !$biblio ) {
+        warn dt_from_string->strftime('%Y-%m-%dT%H:%M:%S') . " - Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Biblio not passed in for non-delete action, fetching from database...: ";
 
         $biblio = Koha::Biblios->find($biblio_id);
 
         unless ( $biblio ) {
             warn dt_from_string->strftime('%Y-%m-%dT%H:%M:%S') . " - Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - biblio $biblio_id not found in database!";
-            return;
         }
     }
 
@@ -107,9 +105,11 @@ sub after_biblio_action {
 
         if ($do_create) {
             if ($biblio && $biblio->items->count == 0) {
+                warn dt_from_string->strftime('%Y-%m-%dT%H:%M:%S') . " - " . "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Create item for biblio $biblio_id";
                 $self->_create_item_for_biblio({ biblio => $biblio });
             }
-            else {
+            elsif (!$biblio) {
+                warn dt_from_string->strftime('%Y-%m-%dT%H:%M:%S') . " - " . "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Biblio $biblio_id not found, falling back to todays imports";
                 $self->create_items_for_today_vendor_imports();
             }
         }
