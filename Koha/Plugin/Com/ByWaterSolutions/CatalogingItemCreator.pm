@@ -121,11 +121,17 @@ sub after_biblio_action {
 }
 
 sub create_items_for_today_vendor_imports {
-    my ($self) = @_;
+    my ($self, $params) = @_;
+
+    my $include_yesterday = $params->{include_yesterday};
+
+    my $date_clause = $include_yesterday
+        ? 'AND DATE(import_batches.upload_timestamp) >= CURDATE() - INTERVAL 1 DAY'
+        : 'AND DATE(import_batches.upload_timestamp) = CURDATE()';
 
     my $dbh = C4::Context->dbh;
     my $sth = $dbh->prepare(
-        q{
+        qq{
 SELECT import_batches.upload_timestamp,
        import_batches.file_name,
        import_biblios.matched_biblionumber,
@@ -138,7 +144,7 @@ FROM   import_batches
        LEFT JOIN items USING ( biblionumber )
 WHERE  ( import_batches.file_name LIKE ?
           OR import_batches.file_name LIKE ? )
-       AND DATE(import_batches.upload_timestamp) = CURDATE()
+       $date_clause
        AND items.itemnumber IS NULL
 }
     );
@@ -214,6 +220,12 @@ sub _create_item_for_biblio {
         "Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator - Item created for Biblio $biblio_id: " . Data::Dumper::Dumper($item->unblessed);
 
     return $item;
+}
+
+sub cronjob_nightly {
+    my ($self) = @_;
+
+    $self->create_items_for_today_vendor_imports({ include_yesterday => 1 });
 }
 
 sub configure {
