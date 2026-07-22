@@ -20,7 +20,7 @@ use_ok('Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator');
 my $plugin = Koha::Plugin::Com::ByWaterSolutions::CatalogingItemCreator->new;
 
 subtest 'after_biblio_action skips deletes' => sub {
-    plan tests => 1;
+    plan tests => 2;
 
     my $biblio = $builder->build_sample_biblio;
     my $item_count_before = Koha::Items->search({ biblionumber => $biblio->biblionumber })->count;
