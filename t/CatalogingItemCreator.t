@@ -2,10 +2,10 @@
 
 use Modern::Perl;
 use Test::More tests => 6;
-use Test::Warn;
 use Test::MockModule;
 
 use Koha::Database;
+use Koha::ActionLogs;
 use Koha::Biblios;
 use Koha::Items;
 use t::lib::TestBuilder;
@@ -25,22 +25,24 @@ subtest 'after_biblio_action skips deletes' => sub {
     my $biblio = $builder->build_sample_biblio;
     my $item_count_before = Koha::Items->search({ biblionumber => $biblio->biblionumber })->count;
 
-    warnings_exist {
-        $plugin->after_biblio_action({
-            action    => 'delete',
-            biblio    => $biblio,
-            biblio_id => $biblio->biblionumber,
-        });
-    } [ qr/Biblio is being deleted, skipping/ ],
-      'Logs delete skip message';
+    $plugin->after_biblio_action({
+        action    => 'delete',
+        biblio    => $biblio,
+        biblio_id => $biblio->biblionumber,
+    });
+
+    my $logs = Koha::ActionLogs->search({
+        module => 'CATALOGING_ITEM_CREATOR',
+        object => $biblio->biblionumber,
+    });
+    is( $logs->count, 0, 'No action logs written on delete' );
 
     my $item_count_after = Koha::Items->search({ biblionumber => $biblio->biblionumber })->count;
-    # Cannot use is() inside warnings_exist, so test after
     is( $item_count_after, $item_count_before, 'No items created on delete' );
 };
 
 subtest 'after_biblio_action checks caller' => sub {
-    plan tests => 2;
+    plan tests => 3;
 
     my $biblio = $builder->build_sample_biblio;
 
@@ -66,6 +68,13 @@ subtest 'after_biblio_action checks caller' => sub {
 
         my $item_count = Koha::Items->search({ biblionumber => $biblio->biblionumber })->count;
         is( $item_count, 1, 'Item created when caller matches addorderiso2709.pl' );
+
+        my $logs = Koha::ActionLogs->search({
+            module => 'CATALOGING_ITEM_CREATOR',
+            action => 'ITEM_CREATED',
+            object => $biblio->biblionumber,
+        });
+        is( $logs->count, 1, 'Item creation was logged' );
     }
 };
 
