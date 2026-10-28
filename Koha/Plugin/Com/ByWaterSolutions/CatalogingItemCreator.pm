@@ -62,9 +62,10 @@ sub new {
 sub after_biblio_action {
     my ($self, $params) = @_;
 
-    my $action = $params->{action};
-    my $biblio = $params->{biblio};
-    my $biblio_id = $params->{biblio_id};
+    my $action    = $params->{action};
+    my $payload   = $params->{payload};
+    my $biblio    = $payload->{biblio};
+    my $biblio_id = $payload->{biblio_id};
 
     if ( $action eq 'delete' ) {
         return;
