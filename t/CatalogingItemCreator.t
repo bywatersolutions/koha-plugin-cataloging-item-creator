@@ -27,8 +27,10 @@ subtest 'after_biblio_action skips deletes' => sub {
 
     $plugin->after_biblio_action({
         action    => 'delete',
-        biblio    => $biblio,
-        biblio_id => $biblio->biblionumber,
+        payload   => {
+            biblio    => $biblio,
+            biblio_id => $biblio->biblionumber,
+        },
     });
 
     my $logs = Koha::ActionLogs->search({
@@ -50,8 +52,10 @@ subtest 'after_biblio_action checks caller' => sub {
         local $0 = '/some/random/script.pl';
         $plugin->after_biblio_action({
             action    => 'create',
-            biblio    => $biblio,
-            biblio_id => $biblio->biblionumber,
+            payload   => {
+                biblio    => $biblio,
+                biblio_id => $biblio->biblionumber,
+            },
         });
 
         my $item_count = Koha::Items->search({ biblionumber => $biblio->biblionumber })->count;
@@ -62,8 +66,10 @@ subtest 'after_biblio_action checks caller' => sub {
         local $0 = '/usr/share/koha/intranet/cgi-bin/cataloguing/addorderiso2709.pl';
         $plugin->after_biblio_action({
             action    => 'create',
-            biblio    => $biblio,
-            biblio_id => $biblio->biblionumber,
+            payload   => {
+                biblio    => $biblio,
+                biblio_id => $biblio->biblionumber,
+            },
         });
 
         my $item_count = Koha::Items->search({ biblionumber => $biblio->biblionumber })->count;
